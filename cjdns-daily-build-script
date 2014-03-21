@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# DO NOT invoke this script directly!
+# Use "sudo start cjdns-daily-build" instead, because that provides proper logging
+# and allows running only one instance of the script.
+
+# This script downloads cjdns source code, builds it for multiple Ubuntu versions
+# and publishes the result in an apt repository.
+
+set -e
+
+#Ensure that newly created files are not writable by everyone.
+umask 0002
+
+#Read list of Ubuntu suites and other parameters from pbuilder config
+#source /etc/pbuilderrc
+#XXX: Reading /etc/pbuilderrc disabled because of security considerations!
+export UBUNTU_SUITES="precise quantal raring saucy trusty"
+
+echo 'Updating pbuilder environments'
+for distro in ${UBUNTU_SUITES}; do
+    for arch in i386 amd64; do
+        sudo DIST="$distro" ARCH="$arch" pbuilder update
+    done
+done
+
+mkdir -p /var/cjdns-daily-builds/
+cd /var/cjdns-daily-builds/
+
+# Enter a directory specific to this build, abort if it's already occupied
+datetime=$(date '+%F.%H:%M')
+mkdir "$datetime"
+cd "$datetime"
+
+# Make a directory owned by unprivileged user
+mkdir unprivileged
+chown cjdns-build unprivileged
+
+echo 'Downloading cjdns source code and building source package'
+echo '
+    set -e
+    cd unprivileged
+    #We use SSH checkout because HTTPS is screwed security-wise
+    git clone --quiet git@github.com:cjdelisle/cjdns.git
+    cd cjdns
+    export DEBFULLNAME="Daily build bot run by Shnatsel"
+    export DEBEMAIL="shnatsel@hyperboria.ca"
+    number_of_commits="$(git rev-list HEAD --count)"
+    git_short_hash="$(git log --pretty=format:%h -n 1)"
+    debchange --force-bad-version --newversion "0.6.0+r${number_of_commits}~git${git_short_hash}" "Automated build of latest git snapshot"
+    debuild -S -us -uc
+' | su cjdns-build
+
+latest_commit_hash="$(echo 'cd unprivileged/cjdns; git log --pretty=format:%H -n 1' | su cjdns-build)"
+latest_built_commit_hash="$(cat /var/cjdns-daily-builds/latest_built_commit_hash)" || true # don't fail if none
+
+if [ "x${latest_commit_hash}" = "x${latest_built_commit_hash}" ]; then
+    echo "This git commit has been already built! Nothing to do."
+    echo 'rm -rf unprivileged/*' | su cjdns-build
+    exit 0
+fi
+
+echo 'Building binary packages'
+mkdir build-results
+for distro in ${UBUNTU_SUITES}; do
+    for arch in i386 amd64; do
+        mkdir -p "build-results/$distro"
+        sudo DIST="$distro" ARCH="$arch" pbuilder build --buildresult "build-results/$distro" --timeout 1h unprivileged/cjdns*.dsc
+    done
+done
+
+echo "${latest_commit_hash}" > /var/cjdns-daily-builds/latest_built_commit_hash
+
+echo 'Shipping built packages to Freight'
+echo '
+    set -e
+    for distro in ${UBUNTU_SUITES}; do
+        freight-add -v --conf=/home/cjdns-build/freight.conf build-results/"$distro"/cjdns*.deb apt/"$distro"
+        # Adding source packages is currently blocked by https://github.com/rcrowley/freight/issues/46
+    done
+    freight-cache -c /home/cjdns-build/freight.conf
+' | su cjdns-build
+
+
+echo 'Cleaning up the downloaded source code'
+# This code will be reached only if everything worked OK.
+echo 'rm -rf unprivileged/*' | su cjdns-build
+
+echo 'All done!'
