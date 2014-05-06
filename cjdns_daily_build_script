@@ -15,7 +15,8 @@ umask 0002
 #Read list of Ubuntu suites and other parameters from pbuilder config
 #source /etc/pbuilderrc
 #XXX: Reading /etc/pbuilderrc disabled because of security considerations!
-export UBUNTU_SUITES="precise raring saucy trusty"
+export UBUNTU_SUITES="raring saucy trusty"
+#FIXME: precise disabled for now because it requires backports which are not yet enabled in pbuilder
 
 echo 'Updating pbuilder environments'
 for distro in ${UBUNTU_SUITES}; do
@@ -36,33 +37,41 @@ cd "$datetime"
 mkdir unprivileged
 chown cjdns-build unprivileged
 
-echo 'Downloading cjdns source code and building source package'
+mkdir build-results
+
+echo "Downloading cjdns source code" 
 echo '
     set -e
     cd unprivileged
     #We use SSH checkout because HTTPS is screwed security-wise
     git clone --quiet git@github.com:cjdelisle/cjdns.git
-    cd cjdns
-    export DEBFULLNAME="Daily build bot run by Shnatsel"
-    export DEBEMAIL="shnatsel@hyperboria.ca"
-    number_of_commits="$(git rev-list HEAD --count)"
-    git_short_hash="$(git log --pretty=format:%h -n 1)"
-    debchange --force-bad-version --newversion "0.6.0+r${number_of_commits}~git${git_short_hash}" "Automated build of latest git snapshot"
-    debuild -S -us -uc
 ' | su cjdns-build
 
-latest_commit_hash="$(echo 'cd unprivileged/cjdns; git log --pretty=format:%H -n 1' | su cjdns-build)"
+latest_commit_hash="$(echo 'set -e; cd unprivileged/cjdns; git log --pretty=format:%H -n 1' | su cjdns-build)"
 latest_built_commit_hash="$(cat /var/cjdns-daily-builds/latest_built_commit_hash)" || true # don't fail if none
 
 if [ "x${latest_commit_hash}" = "x${latest_built_commit_hash}" ]; then
-    echo "This git commit has been already built! Nothing to do."
-    echo 'rm -rf unprivileged/*' | su cjdns-build
+    echo "git commit ${latest_commit_hash} has been already built!
+Nothing to do."
     exit 0
 fi
 
-echo 'Building binary packages'
-mkdir build-results
 for distro in ${UBUNTU_SUITES}; do
+    echo "Building source package for distro ${distro}"
+    echo '
+        set -e
+        cd unprivileged
+        cp -r cjdns "cjdns_${distro}"
+        cd "cjdns_${distro}"
+        export DEBFULLNAME="Daily build bot run by Shnatsel"
+        export DEBEMAIL="shnatsel@hyperboria.ca"
+        number_of_commits="$(git rev-list HEAD --count)"
+        git_short_hash="$(git log --pretty=format:%h -n 1)"
+        debchange --force-bad-version --newversion "0.7.0+r${number_of_commits}+${distro}1~git${git_short_hash}" "Automated build of latest git snapshot at commit ${git_short_hash}"
+        debuild -S -us -uc
+    ' | su cjdns-build
+
+    echo "Building the binary packages for distro $distro"
     for arch in i386 amd64; do
         mkdir -p "build-results/$distro"
         sudo DIST="$distro" ARCH="$arch" pbuilder build --buildresult "build-results/$distro" --timeout 1h unprivileged/cjdns*.dsc
