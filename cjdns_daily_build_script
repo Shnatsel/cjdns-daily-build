@@ -51,8 +51,8 @@ latest_commit_hash="$(echo 'set -e; cd unprivileged/cjdns; git log --pretty=form
 latest_built_commit_hash="$(cat /var/cjdns-daily-builds/latest_built_commit_hash)" || true # don't fail if none
 
 if [ "x${latest_commit_hash}" = "x${latest_built_commit_hash}" ]; then
-    echo "git commit ${latest_commit_hash} has been already built!
-Nothing to do."
+    echo "This git commit has been already built! Nothing to do."
+    echo 'rm -rf unprivileged/*' | su cjdns-build
     exit 0
 fi
 
@@ -61,8 +61,9 @@ for distro in ${UBUNTU_SUITES}; do
     echo '
         set -e
         cd unprivileged
-        cp -r cjdns "cjdns_${distro}"
-        cd "cjdns_${distro}"
+        mkdir "${distro}"
+        cp -r cjdns "${distro}/cjdns"
+        cd "${distro}/cjdns"
         export DEBFULLNAME="Daily build bot run by Shnatsel"
         export DEBEMAIL="shnatsel@hyperboria.ca"
         number_of_commits="$(git rev-list HEAD --count)"
@@ -74,7 +75,7 @@ for distro in ${UBUNTU_SUITES}; do
     echo "Building the binary packages for distro $distro"
     for arch in i386 amd64; do
         mkdir -p "build-results/$distro"
-        sudo DIST="$distro" ARCH="$arch" pbuilder build --buildresult "build-results/$distro" --timeout 1h unprivileged/cjdns*.dsc
+        sudo DIST="$distro" ARCH="$arch" pbuilder build --buildresult "build-results/$distro" --timeout 1h "unprivileged/${distro}/"cjdns*.dsc
     done
 done
 
