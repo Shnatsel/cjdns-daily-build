@@ -86,7 +86,7 @@ echo '
     set -e
     for distro in ${UBUNTU_SUITES}; do
         freight-add -v --conf=/home/cjdns-build/freight.conf build-results/"$distro"/cjdns*.deb apt/"$distro"
-        # Adding source packages is currently blocked by https://github.com/rcrowley/freight/issues/46
+        freight-add -v --conf=/home/cjdns-build/freight.conf unprivileged/"$distro"/cjdns*.dsc unprivileged/"$distro"/cjdns*.tar.gz apt/"$distro"
     done
     freight-cache -c /home/cjdns-build/freight.conf
 ' | su cjdns-build
