@@ -56,6 +56,7 @@ if [ "x${latest_commit_hash}" = "x${latest_built_commit_hash}" ]; then
 fi
 
 for distro in ${UBUNTU_SUITES}; do
+    export distro
     echo "Building source package for distro ${distro}"
     echo '
         set -e
