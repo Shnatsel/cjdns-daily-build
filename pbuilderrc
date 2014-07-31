@@ -1,0 +1,23 @@
+# this is your configuration file for pbuilder.
+# the file in /usr/share/pbuilder/pbuilderrc is the default template.
+# /etc/pbuilderrc is the one meant for overwriting defaults in
+# the default template
+#
+# read pbuilderrc.5 document for notes on specific options.
+MIRRORSITE=http://ru.archive.ubuntu.com/ubuntu/
+
+COMPONENTS="main universe"
+
+NAME="$DIST"
+if [ -n "${ARCH}" ]; then
+    NAME="$NAME-$ARCH"
+    DEBOOTSTRAPOPTS=("--arch" "$ARCH" "${DEBOOTSTRAPOPTS[@]}")
+fi
+BASETGZ="/var/cache/pbuilder/$NAME-base.tgz"
+# Optionally, set BASEPATH (and not BASETGZ) if using cowbuilder
+# BASEPATH="/var/cache/pbuilder/$NAME/base.cow/"
+BUILDRESULT="/var/cache/pbuilder/$NAME/result/"
+APTCACHE="/var/cache/pbuilder/$NAME/aptcache/"
+BUILDPLACE="/var/cache/pbuilder/build-$NAME/"
+
+DISTRIBUTION="$DIST"
