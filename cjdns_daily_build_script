@@ -15,7 +15,7 @@ umask 0002
 #Read list of Ubuntu suites and other parameters from pbuilder config
 #source /etc/pbuilderrc
 #XXX: Reading /etc/pbuilderrc disabled because of security considerations!
-export UBUNTU_SUITES="precise raring saucy trusty"
+export UBUNTU_SUITES="precise trusty utopic"
 
 echo 'Updating pbuilder environments'
 for distro in ${UBUNTU_SUITES}; do
