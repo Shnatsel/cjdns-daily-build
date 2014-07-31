@@ -18,6 +18,7 @@ umask 0002
 export UBUNTU_SUITES="precise trusty utopic"
 
 echo 'Updating pbuilder environments'
+# run this with "create" manually if you haven't created the pbuilder envs yet
 for distro in ${UBUNTU_SUITES}; do
     for arch in i386 amd64; do
         sudo DIST="$distro" ARCH="$arch" pbuilder update
