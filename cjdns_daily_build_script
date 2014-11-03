@@ -69,7 +69,8 @@ for distro in ${UBUNTU_SUITES}; do
         export DEBEMAIL="shnatsel@hyperboria.ca"
         number_of_commits="$(git rev-list HEAD --count)"
         git_short_hash="$(git log --pretty=format:%h -n 1)"
-        debchange --force-bad-version --newversion "0.7.0+r${number_of_commits}+${distro}1~git${git_short_hash}" "Automated build of latest git snapshot at commit ${git_short_hash}"
+        protocol_verion="$(grep -m 1 '#define Version_CURRENT_PROTOCOL' util/version/Version.h | grep -E --only-matching '[:digit:]+[:blank:]*$' )"
+        debchange --force-bad-version --newversion "0.${protocol_verion}.0+r${number_of_commits}+${distro}1~git${git_short_hash}" "Automated build of latest git snapshot at commit ${git_short_hash}"
         debuild -S -us -uc
     ' | su cjdns-build
 
