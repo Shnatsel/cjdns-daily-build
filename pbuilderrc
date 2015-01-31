@@ -5,6 +5,9 @@
 #
 # read pbuilderrc.5 document for notes on specific options.
 MIRRORSITE=http://ru.archive.ubuntu.com/ubuntu/
+if [ "${ARCH}" != 'i386' ] && [ "${ARCH}" != 'amd64' ]; then
+    MIRRORSITE=http://ports.ubuntu.com/
+fi
 
 COMPONENTS="main universe"
 
