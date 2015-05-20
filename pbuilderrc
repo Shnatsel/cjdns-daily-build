@@ -18,7 +18,10 @@ else
     NAME="$DIST"
 fi
 
-OTHERMIRROR="deb http://archive.ubuntu.com/ubuntu $DIST-security $COMPONENTS|deb $MIRRORSITE $DIST-updates $COMPONENTS"
+OTHERMIRROR="deb http://archive.ubuntu.com/ubuntu $DIST-security $COMPONENTS"
+# Having "deb $MIRRORSITE $DIST-updates $COMPONENTS" too would be nice, but causes the following error:
+# W: Failed to fetch http://ru.archive.ubuntu.com/ubuntu/dists/vivid-updates/universe/i18n/Translation-en  Hash Sum mismatch
+# E: Some index files failed to download. They have been ignored, or old ones used instead.
 
 BASETGZ="/var/cache/pbuilder/$NAME-base.tgz"
 # Optionally, set BASEPATH (and not BASETGZ) if using cowbuilder
