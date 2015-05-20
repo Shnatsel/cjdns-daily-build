@@ -11,11 +11,15 @@ fi
 
 COMPONENTS="main universe"
 
-NAME="$DIST"
 if [ -n "${ARCH}" ]; then
-    NAME="$NAME-$ARCH"
+    NAME="$DIST-$ARCH"
     DEBOOTSTRAPOPTS=("--arch" "$ARCH" "${DEBOOTSTRAPOPTS[@]}")
+else
+    NAME="$DIST"
 fi
+
+OTHERMIRROR="deb http://archive.ubuntu.com/ubuntu $DIST-security $COMPONENTS|deb $MIRRORSITE $DIST-updates $COMPONENTS"
+
 BASETGZ="/var/cache/pbuilder/$NAME-base.tgz"
 # Optionally, set BASEPATH (and not BASETGZ) if using cowbuilder
 # BASEPATH="/var/cache/pbuilder/$NAME/base.cow/"
